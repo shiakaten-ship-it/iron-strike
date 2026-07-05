@@ -529,8 +529,8 @@ function applyGuestInput(){
   const gr=robots.find(r=>r.id===MP.gRobotId);
   if(!gr||gr.destroyed)return;
   const dt=0.033;
-  if(data.keys.KeyA)gr.bAng-=gr.tSpd*2.8;
-  if(data.keys.KeyD)gr.bAng+=gr.tSpd*2.8;
+  if(data.keys.KeyA)gr.bAng-=gr.tSpd*1.4;
+  if(data.keys.KeyD)gr.bAng+=gr.tSpd*1.4;
   if(data.keys.KeyW){const s=gr.spd*dt;moveBot(gr,Math.cos(gr.bAng)*s,Math.sin(gr.bAng)*s);}
   if(data.keys.KeyS){const s=gr.spd*dt*.65;moveBot(gr,-Math.cos(gr.bAng)*s,-Math.sin(gr.bAng)*s);}
   gr.tAng=data.tAng;
@@ -791,8 +791,8 @@ function updateAI(r,dt){
 // ════════════════════════════════════════════════════════════
 function updateP(dt){
   if(!playerBot||playerBot.destroyed)return;const r=playerBot;
-  if(keys['KeyA']||keys['ArrowLeft'])r.bAng-=r.tSpd*2.8;
-  if(keys['KeyD']||keys['ArrowRight'])r.bAng+=r.tSpd*2.8;
+  if(keys['KeyA']||keys['ArrowLeft'])r.bAng-=r.tSpd*1.4;
+  if(keys['KeyD']||keys['ArrowRight'])r.bAng+=r.tSpd*1.4;
   if(keys['KeyW']||keys['ArrowUp']){const s=(r.spd+r.spdB)*dt;moveBot(r,Math.cos(r.bAng)*s,Math.sin(r.bAng)*s);}
   if(keys['KeyS']||keys['ArrowDown']){const s=(r.spd+r.spdB)*dt*.65;moveBot(r,-Math.cos(r.bAng)*s,-Math.sin(r.bAng)*s);}
   if(r.charging)moveBot(r,r.cvx*dt,r.cvy*dt);
