@@ -162,9 +162,10 @@ canvas{display:block;}
     <button class="btn btn-r" onclick="hostGame('PVP')">⚔ HOST PVP <span class="badge-pv">BLUE vs RED</span></button>
     <div class="mp-divider">OR JOIN A FRIEND</div>
     <div style="display:flex;gap:8px">
-      <input class="join-inp" id="join-code-mp" placeholder="ROOM CODE" maxlength="8" oninput="this.value=this.value.toUpperCase()">
+      <input class="join-inp" id="join-code-mp" placeholder="ROOM CODE" maxlength="8" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')joinGame(this.value)">
       <button class="btn" onclick="joinGame(document.getElementById('join-code-mp').value)" style="padding:12px 14px;font-size:10px">JOIN →</button>
     </div>
+    <button class="btn2" style="background:rgba(0,200,255,.06);border-color:rgba(0,200,255,.35);color:#00ccff" onclick="quickMatch()">⚡ QUICK MATCH (no code)</button>
     <div class="mp-divider">OR</div>
     <button class="btn2" onclick="showHangar()">SOLO vs AI</button>
   </div>
@@ -1078,15 +1079,45 @@ function gameLoop(ts){
 (function init(){
   const urlRoom=new URLSearchParams(location.search).get('room');
   if(urlRoom){
-    // Auto-fill join code
-    document.getElementById('join-code-mp').value=urlRoom.toUpperCase();
-    showMpMenu();
-    // Small delay then auto-join
-    setTimeout(()=>showToast('Room code loaded! Click JOIN to connect 🎮','#4dc8ff'),500);
+    // Show joining screen immediately, then auto-connect
+    document.getElementById('sc-mp').classList.add('off');
+    document.getElementById('sc-gready').classList.remove('off');
+    document.getElementById('guest-status').textContent='Auto-connecting to room '+urlRoom+'...';
+    showToast('Invite link detected — connecting! 🎮','#39ff14');
+    // Short delay so UI renders first
+    setTimeout(()=>joinGame(urlRoom),800);
   } else {
     showMpMenu();
   }
 })();
+
+function quickMatch(){
+  // Use a time-based lobby slot so nearby players auto-pair
+  const slot=Math.floor(Date.now()/60000)%100; // changes every minute
+  const lobbyCode='QM'+slot.toString().padStart(2,'0')+'IRON';
+  showToast('Searching for a match...','#00ccff');
+  // Try to be host first; if ID taken, become guest
+  try{
+    const probe=new Peer('IRON6-'+lobbyCode,{debug:0});
+    probe.on('open',()=>{
+      probe.destroy();
+      // We're first — host it
+      MP.mode='COOP';
+      hostGame('COOP');
+      // Override the code to the lobby code
+      MP.code=lobbyCode;
+      document.getElementById('room-code-display').textContent=lobbyCode;
+    });
+    probe.on('error',err=>{
+      if(err.type==='unavailable-id'){
+        // Someone is already hosting this slot — join them
+        showToast('Found a match! Joining...','#39ff14');
+        document.getElementById('join-code-mp').value=lobbyCode;
+        joinGame(lobbyCode);
+      } else showToast('Match error: '+err.type,'#ff2200');
+    });
+  }catch(e){showToast('Quick match unavailable','#ff2200');}
+}
 </script>
 </body>
 </html>
