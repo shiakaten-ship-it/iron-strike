@@ -517,7 +517,9 @@ function buildScene3(){
     if(!isW){
       const eGeo=new THREE.EdgesGeometry(new THREE.BoxGeometry(b.w,bh,b.h));
       const col = Math.random() > 0.5 ? 0xff6600 : 0x00ccff;
-      scene3.add(Object.assign(new THREE.LineSegments(eGeo,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.25})),{position:mesh.position.clone()}));
+      const edges = new THREE.LineSegments(eGeo,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.25}));
+      edges.position.copy(mesh.position);
+      scene3.add(edges);
     }
   }
 
