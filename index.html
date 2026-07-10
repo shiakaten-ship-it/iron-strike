@@ -6,6 +6,8 @@
 <meta name="description" content="Iron Strike: Real 3D third-person multiplayer robot war. 25 robots, CO-OP & PVP, Steam invite, beacon domination.">
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/utils/SkeletonUtils.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script>
 window.onerror = function(msg, url, line, col, error) {
@@ -444,6 +446,7 @@ const meshes3={};
 let projMeshes3=[];
 const beaconMeshes3={};
 const explFlashes=[];
+const baseModels={};
 const groundPlane3=new THREE.Plane(new THREE.Vector3(0,1,0),0);
 const raycaster3=new THREE.Raycaster();
 const mmC=document.getElementById('mm-c'),mmX=mmC.getContext('2d');
@@ -567,85 +570,41 @@ function makeRobotMesh3(r){
   const bc=new THREE.Color(r.bCol),tc=new THREE.Color(r.tCol);
   const BW=r.bW,BH=Math.max(r.bH*0.5,18);
   const teamC=r.team==='blue'?new THREE.Color(0x1144ff):r.team==='red'?new THREE.Color(0xff2200):new THREE.Color(0x00ccff);
+  
   const hMat=new THREE.MeshStandardMaterial({color:bc,metalness:0.7,roughness:0.3,emissive:bc.clone().multiplyScalar(0.25)});
   const aMat=new THREE.MeshStandardMaterial({color:tc,metalness:0.8,roughness:0.2,emissive:tc.clone().multiplyScalar(0.3)});
   
-  // Massive Scale Multiplier
-  const bScale = 2.4; 
-  const W = BW * bScale, H = BH * bScale * 1.5;
-  
-  // Custom geometry based on shape class
-  let hGeo = new THREE.BoxGeometry(W*0.9,H*0.45,W*0.65);
-  let tGeo = new THREE.CylinderGeometry(W*0.28,W*0.33,H*0.24,10);
-  if(r.shape === 'light'){
-    tGeo = new THREE.CylinderGeometry(W*0.25,W*0.3,H*0.2,8);
-  } else if(r.shape === 'heavy'){
-    tGeo = new THREE.BoxGeometry(W*0.6,H*0.3,W*0.5);
-  }
-  
-  // Hull
-  const hull=new THREE.Mesh(hGeo,hMat);
-  hull.position.y=H*0.28;hull.castShadow=true;g.add(hull);
-  
-  // Front slope
-  const fSlope=new THREE.Mesh(new THREE.BoxGeometry(W*0.25,H*0.4,W*0.6),hMat);
-  fSlope.position.set(W*0.5,H*0.22,0);fSlope.rotation.z=0.2;fSlope.castShadow=true;g.add(fSlope);
-  
-  // Back
-  const back=new THREE.Mesh(new THREE.BoxGeometry(W*0.2,H*0.3,W*0.5),aMat);
-  back.position.set(-W*0.5,H*0.22,0);back.castShadow=true;g.add(back);
-  
-  // Unique Robot Customizations
-  if(r.type === 'hawk') {
-      const wings = new THREE.Mesh(new THREE.BoxGeometry(W*0.4, H*0.05, W*1.8), aMat);
-      wings.position.set(-W*0.2, H*0.4, 0); g.add(wings);
-  } else if (r.type === 'rhino' || r.type === 'fujin' || r.type === 'rajin') {
-      const shield = new THREE.Mesh(new THREE.BoxGeometry(W*0.1, H*0.6, W*1.2), new THREE.MeshStandardMaterial({color:0x444444, metalness:0.9}));
-      shield.position.set(W*0.6, H*0.3, 0); g.add(shield);
-  } else if (r.type === 'carnage' || r.type === 'lancelot' || r.shape === 'heavy') {
-      const shoulderL = new THREE.Mesh(new THREE.BoxGeometry(W*0.4, H*0.5, W*0.3), hMat);
-      shoulderL.position.set(0, H*0.3, W*0.5); g.add(shoulderL);
-      const shoulderR = new THREE.Mesh(new THREE.BoxGeometry(W*0.4, H*0.5, W*0.3), hMat);
-      shoulderR.position.set(0, H*0.3, -W*0.5); g.add(shoulderR);
-  } else if (r.type === 'gareth' || r.type === 'gepard' || r.shape === 'light') {
-      const thruster = new THREE.Mesh(new THREE.CylinderGeometry(W*0.15,W*0.15,H*0.4,8), new THREE.MeshBasicMaterial({color:0xffaa00}));
-      thruster.rotation.x = Math.PI/2; thruster.position.set(-W*0.6, H*0.25, 0); g.add(thruster);
-  }
-
-  // Team stripe
-  const stripe=new THREE.Mesh(new THREE.BoxGeometry(W*0.86,H*0.065,W*0.7),new THREE.MeshStandardMaterial({color:teamC,emissive:teamC,emissiveIntensity:1.8}));
-  stripe.position.y=H*0.54;g.add(stripe);
-  
-  // Legs instead of Tracks
-  const legM=new THREE.MeshStandardMaterial({color:0x112233,metalness:0.6,roughness:0.8});
-  const legGeo=new THREE.BoxGeometry(W*0.28,H*0.7,W*0.35);
-  const lLeg=new THREE.Mesh(legGeo,legM); lLeg.position.set(0,-H*0.1,W*0.35); lLeg.castShadow=true; g.add(lLeg);
-  const rLeg=new THREE.Mesh(legGeo,legM); rLeg.position.set(0,-H*0.1,-W*0.35); rLeg.castShadow=true; g.add(rLeg);
-  
-  if(r.type === 'fujin' || r.type === 'rajin' || r.type === 'rhino') {
-      // Quad legs for heavy mechs
-      const lLeg2=new THREE.Mesh(legGeo,legM); lLeg2.position.set(-W*0.4,-H*0.1,W*0.35); lLeg2.castShadow=true; g.add(lLeg2);
-      const rLeg2=new THREE.Mesh(legGeo,legM); rLeg2.position.set(-W*0.4,-H*0.1,-W*0.35); rLeg2.castShadow=true; g.add(rLeg2);
-      g.userData.legs=[lLeg,rLeg,lLeg2,rLeg2];
+  if(baseModels.mech) {
+      const clone = THREE.SkeletonUtils.clone(baseModels.mech);
+      const s = BW * 1.5;
+      clone.scale.set(s,s,s);
+      clone.position.y = -10;
+      clone.traverse(c => {
+         if(c.isMesh) { c.material = hMat; c.castShadow=true; c.receiveShadow=true; }
+      });
+      g.add(clone);
+      g.userData.legs=[clone];
   } else {
-      g.userData.legs=[lLeg,rLeg];
+      const box = new THREE.Mesh(new THREE.BoxGeometry(BW,BH,BW), hMat);
+      g.add(box);
   }
-
-  // Nametag
+  
+  const stripe=new THREE.Mesh(new THREE.BoxGeometry(BW*1.4,BH*0.2,BW*1.1),new THREE.MeshStandardMaterial({color:teamC,emissive:teamC,emissiveIntensity:1.8}));
+  stripe.position.y=BH;g.add(stripe);
+  
   const isAlly = playerBot ? (r.team === playerBot.team) : (r.team === 'blue');
   const nameCol = isAlly ? '#39aaff' : '#ff3311';
   const nameCanvas = document.createElement('canvas'); nameCanvas.width=256; nameCanvas.height=64;
   const nameCtx = nameCanvas.getContext('2d');
   nameCtx.font = 'bold 28px Orbitron, sans-serif'; nameCtx.fillStyle = nameCol;
   nameCtx.textAlign = 'center'; nameCtx.shadowColor = '#000'; nameCtx.shadowBlur = 6;
-  nameCtx.fillText((r.isP||r.isGuest)?r.name+' ★':r.name, 128, 40);
+  nameCtx.fillText((r.isP||r.isGuest)?r.name+' 👤':r.name, 128, 40);
   const nametag = new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(nameCanvas),transparent:true,depthTest:false}));
-  nametag.scale.set(75, 18, 1); nametag.position.y = BH * 1.8 + 25;
+  nametag.scale.set(75, 18, 1); nametag.position.y = BH * 2.2 + 25;
   g.add(nametag);
   
-  // TURRET GROUP
-  const tg=new THREE.Group();tg.position.y=BH*0.58;
-  const tBase=new THREE.Mesh(tGeo,aMat);
+  const tg=new THREE.Group();tg.position.y=BH*1.2;
+  const tBase=new THREE.Mesh(new THREE.BoxGeometry(BW*0.6,BH*0.3,BW*0.5),aMat);
   tBase.castShadow=true;tg.add(tBase);
   
   // Barrels (point in +X direction)
@@ -1085,9 +1044,14 @@ function updateAI(r,dt){
 function updateP(dt){
   if(!playerBot||playerBot.destroyed)return;const r=playerBot;
   // Slower turning for host/player
-  if(keys['KeyA']||keys['ArrowLeft'])r.bAng-=r.tSpd*0.5;
-  if(keys['KeyD']||keys['ArrowRight'])r.bAng+=r.tSpd*0.5;
   const speedMult = r.flying ? 2.5 : 1;
+  if(r.flying) {
+    if(keys['KeyA']||keys['ArrowLeft']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.bAng-Math.PI/2)*s,Math.sin(r.bAng-Math.PI/2)*s);}
+    if(keys['KeyD']||keys['ArrowRight']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.bAng+Math.PI/2)*s,Math.sin(r.bAng+Math.PI/2)*s);}
+  } else {
+    if(keys['KeyA']||keys['ArrowLeft'])r.bAng-=r.tSpd*0.5;
+    if(keys['KeyD']||keys['ArrowRight'])r.bAng+=r.tSpd*0.5;
+  }
   if(keys['KeyW']||keys['ArrowUp']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.bAng)*s,Math.sin(r.bAng)*s);}
   if(keys['KeyS']||keys['ArrowDown']){const s=(r.spd+r.spdB)*speedMult*dt*.65;moveBot(r,-Math.cos(r.bAng)*s,-Math.sin(r.bAng)*s);}
   if(r.charging)moveBot(r,r.cvx*dt,r.cvy*dt);
@@ -1383,8 +1347,20 @@ function gameLoop(ts){
 }
 
 // ── Init ──────────────────────────────────────────────────
-initThree();
-(function init(){
+ loadModels(cb){
+  const loader=new THREE.GLTFLoader();
+  loader.load('models/robot.glb',gltf=>{
+    const m=gltf.scene;
+    m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+    baseModels.mech=m;
+    cb();
+  },undefined,err=>{
+    console.error('Model load error:',err);
+    cb();
+  });
+}
+loadModels(()=>{
+  (function init(){
   const urlRoom=new URLSearchParams(location.search).get('room');
   if(urlRoom){
     document.getElementById('sc-mp').classList.add('off');
@@ -1395,7 +1371,8 @@ initThree();
   }else{showMpMenu();}
   lastT=performance.now();
   requestAnimationFrame(gameLoop);
-})();
+  })();
+});
 </script>
 </body>
 </html>
