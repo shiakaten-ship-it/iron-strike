@@ -233,6 +233,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060a0f;font-family:
           <div class="grid" id="fpick-grid" style="max-height:440px;overflow-y:auto;"></div>
           <button class="btn2" onclick="closePicker()" style="margin-top:8px">CANCEL</button>
         </div>
+        <div id="loadout-picker" style="display:none">
+          <div style="font-family:'Orbitron',sans-serif;font-size:12px;color:#ff6600;margin-bottom:12px">EQUIP WEAPONS</div>
+          <div id="loadout-slots" style="display:flex;gap:8px;margin-bottom:16px;justify-content:center"></div>
+          <div class="grid" id="lpick-grid" style="max-height:300px;overflow-y:auto;"></div>
+          <button class="btn2" onclick="closeLoadout()" style="margin-top:8px">DONE</button>
+        </div>
         <div style="display:flex;gap:10px;margin-top:16px" id="deploy-row">
           <button class="btn2" onclick="showMpMenu()">← BACK</button>
           <button class="btn" id="depbtn" onclick="startBattle()">DEPLOY →</button>
@@ -250,6 +256,12 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060a0f;font-family:
   <div class="rstats" id="rstats"></div>
   <div style="font-family:'Orbitron',sans-serif;font-size:10px;color:rgba(255,255,255,.4);margin-bottom:20px" id="r-reward"></div>
   <button class="btn" onclick="showMpMenu()">RETURN TO BASE</button>
+</div>
+
+<!-- SPAWN MENU -->
+<div class="sc off" id="sc-spawn" style="background:rgba(0,0,0,0.85); z-index:100">
+  <div style="font-family:'Orbitron',sans-serif;font-size:24px;font-weight:900;color:#ff6600;margin-bottom:16px" id="spawn-title">DEPLOY ROBOT</div>
+  <div id="spawn-grid" style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;max-width:800px"></div>
 </div>
 
 <script>
@@ -644,6 +656,20 @@ function updateRobotMeshes3(){
     }else if(!r.shActive&&!r.orActive&&m.userData.shieldOrb){m.remove(m.userData.shieldOrb);delete m.userData.shieldOrb;}
     if(m.userData.bl)m.userData.bl.intensity=0.4+(r.hp/r.maxHp)*0.8;
     
+    // Hawk beam visual
+    if(r.hawkBeamTarget){
+      if(!m.userData.hawkBeam){
+         const bm=new THREE.Mesh(new THREE.CylinderGeometry(1.5,1.5,1,8),new THREE.MeshBasicMaterial({color:0xff3300}));
+         bm.geometry.translate(0,0.5,0);bm.rotation.x=Math.PI/2;
+         m.add(bm);m.userData.hawkBeam=bm;
+      }
+      const bm=m.userData.hawkBeam;
+      const t=r.hawkBeamTarget, dx=t.x-r.x, dy=t.y-r.y, d=Math.hypot(dx,dy);
+      bm.scale.z=d;
+      bm.rotation.y=-Math.atan2(dy,dx)-m.rotation.y;
+      bm.position.y=r.bH*0.5;
+    }else if(m.userData.hawkBeam){m.remove(m.userData.hawkBeam);delete m.userData.hawkBeam;}
+    
     // Animate legs
     if(m.userData.legs){
       const dx=r.x-(r.px||r.x), dy=r.y-(r.py||r.y);
@@ -878,7 +904,7 @@ function guestStartBattle(){
   document.getElementById('hud').classList.remove('off');
   document.getElementById('mp-badge').style.display='block';
   genMap();initAudio();buildScene3();startGuestSync();
-  lastT=performance.now();requestAnimationFrame(gameLoop); // using common loop
+  lastT=performance.now();
 }
 
 function mpHostStart(){if(MP.conn&&MP.ready)MP.conn.send({type:'START'});startBattle();}
@@ -988,7 +1014,7 @@ function destroyBot(robot,atkId){
   updScores();triggerShake(10);
 }
 function addKF(killer,victim,team){const kf=document.getElementById('kf');const el=document.createElement('div');el.className='ke';el.style.color=team==='blue'?'#88aaff':'#ff8888';el.textContent=`${killer} ▶ ${victim}`;kf.appendChild(el);setTimeout(()=>el.remove(),4000);if(kf.children.length>6)kf.firstChild.remove();}
-function respawnP(){if(battleOver)return;const curF=formation.filter(Boolean);for(let i=0;i<curF.length;i++){const idx=(hangarIdx+1+i)%curF.length,key=curF[idx],ex=robots.find(r=>r.isP&&r.type===key&&!r.destroyed);if(ex){playerBot=ex;hangarIdx=idx;updHUD();return;}if(!robots.find(r=>r.isP&&r.type===key)){const p=bPos(idx),nb=makeRobot(key,'blue',p.x,p.y,true);robots.push(nb);playerBot=nb;hangarIdx=idx;updHUD();return;}}endBattle();}
+function respawnP(){if(battleOver)return;openSpawnMenu();}
 function respawnAI(robot){if(battleOver)return;const p=robot.team==='blue'?bPos(rndI(0,5)):rPos(rndI(0,5));const nb=makeRobot(robot.type,robot.team,p.x,p.y,false);const idx=robots.indexOf(robot);if(idx>=0)robots.splice(idx,1,nb);else robots.push(nb);}
 
 // ── AI ────────────────────────────────────────────────────
@@ -1033,6 +1059,17 @@ function update(dt){
   for(const r of robots){
     if(r.destroyed)continue;
     if(r.ab.active&&r.ab.d>0){r.ab.timer-=dt;if(r.ab.timer<=0)endAbility(r);}
+    if(r.flying && r.type==='hawk'){
+       let ne=r.ai?r.ai.target:null;
+       if(!ne){
+         let nd=800;
+         for(const rb of robots){if(rb.team!==r.team&&!rb.destroyed){const d=dist(r,rb);if(d<nd){nd=d;ne=rb;}}}
+       }
+       if(ne && dist(r,ne)<800){
+         dmgBot(ne, 15000*dt, r.id);
+         r.hawkBeamTarget = ne;
+       }else r.hawkBeamTarget=null;
+    }else r.hawkBeamTarget=null;
     if(r.ab.cdLeft>0)r.ab.cdLeft-=dt;
     if(r.inv>0)r.inv-=dt;
     for(const w of r.ws){if(w.fT>0)w.fT-=dt;}
@@ -1084,7 +1121,7 @@ function updHRow(){const el=document.getElementById('hrrow');el.innerHTML='';con
 function switchBot(idx){const key=formation.filter(Boolean)[idx];const ex=robots.find(r=>r.isP&&r.type===key&&!r.destroyed);if(ex){playerBot=ex;hangarIdx=idx;updHUD();}}
 
 // ── Screen Management ──────────────────────────────────────
-const ALL_SC=['sc-mp','sc-wait','sc-gready','sc-h','sc-r'];
+const ALL_SC=['sc-mp','sc-wait','sc-gready','sc-h','sc-r','sc-spawn'];
 function showOnly(id){ALL_SC.forEach(s=>{const el=document.getElementById(s);if(el)el.classList.toggle('off',s!==id);});document.getElementById('hud').classList.add('off');}
 function showMpMenu(){gs='start';showOnly('sc-mp');}
 function showHangar(){
@@ -1100,7 +1137,7 @@ function switchTab(tab){document.querySelectorAll('.tab').forEach((el,i)=>el.cla
 function renderFormation(){
   const el=document.getElementById('formation-slots');el.innerHTML='';
   for(let i=0;i<5;i++){const key=formation[i];const s=document.createElement('div');s.className='fslot'+(key?' filled':'');s.innerHTML=`<div class="fslot-num">${i+1}</div>`;
-  if(key){const T=RD[key];s.innerHTML+=`<span class="fslot-rm" onclick="rmFormation(${i})">✕</span><div style="font-size:24px">${T.icon}</div><div style="font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;color:#fff">${T.name}</div><div style="font-size:7px;color:rgba(255,100,0,.6);font-family:'Orbitron',sans-serif">${T.cls}</div>`;s.onclick=e=>{if(e.target.className.includes('fslot-rm'))return;openPicker(i);}; s.onmouseenter=()=>updateHangarPreview(key);}
+  if(key){const T=RD[key];s.innerHTML+=`<span class="fslot-rm" onclick="rmFormation(${i})">✕</span><div style="font-size:24px">${T.icon}</div><div style="font-family:'Orbitron',sans-serif;font-size:9px;font-weight:700;color:#fff">${T.name}</div><div style="font-size:7px;color:rgba(255,100,0,.6);font-family:'Orbitron',sans-serif">${T.cls}</div><div class="cbtn" style="padding:4px;font-size:7px;margin-top:6px" onclick="openLoadout('${key}')">⚙ EQUIP</div>`;s.onclick=e=>{if(e.target.className.includes('fslot-rm')||e.target.className.includes('cbtn'))return;openPicker(i);}; s.onmouseenter=()=>updateHangarPreview(key);}
   else{s.innerHTML+=`<div style="font-size:22px;color:rgba(255,100,0,.2)">+</div><div style="font-family:'Orbitron',sans-serif;font-size:8px;color:rgba(255,255,255,.25)">EMPTY</div>`;s.onclick=()=>openPicker(i);}
   el.appendChild(s);}
   document.getElementById('depbtn').disabled=!formation.some(Boolean);
@@ -1108,6 +1145,79 @@ function renderFormation(){
 window.rmFormation=function(i){formation[i]=null;renderFormation();}
 function openPicker(idx){document.getElementById('picker-slot-num').textContent=idx+1;const grid=document.getElementById('fpick-grid');grid.innerHTML='';for(const[key,T] of Object.entries(RD)){if(!ownedRobots.has(key))continue;const c=document.createElement('div');c.className='card owned';c.innerHTML=`<div style="font-size:26px">${T.icon}</div><div class="cname">${T.name}</div><div class="cdesc">${T.cls}</div>`;c.onclick=()=>{formation[idx]=key;document.getElementById('formation-picker').style.display='none';document.getElementById('deploy-row').style.display='flex';renderFormation();}; c.onmouseenter=()=>updateHangarPreview(key); grid.appendChild(c);}document.getElementById('formation-picker').style.display='block';document.getElementById('deploy-row').style.display='none';}
 window.closePicker=function(){document.getElementById('formation-picker').style.display='none';document.getElementById('deploy-row').style.display='flex';}
+
+window.openLoadout=function(key){
+  const T=RD[key];
+  if(!robotLoadout[key]) robotLoadout[key] = [...T.ws];
+  renderLoadout(key);
+  document.getElementById('formation-picker').style.display='none';
+  document.getElementById('deploy-row').style.display='none';
+  document.getElementById('loadout-picker').style.display='block';
+}
+window.renderLoadout=function(key){
+  const T=RD[key];
+  const slotsEl=document.getElementById('loadout-slots');slotsEl.innerHTML='';
+  T.slots.forEach((sCls, idx)=>{
+     const selW = robotLoadout[key][idx];
+     const W = WD[selW];
+     const s=document.createElement('div');
+     s.className='fslot filled';
+     s.innerHTML=`<div class="cbadge cl-${sCls[0]}" style="font-size:6px">${sCls}</div><div style="font-size:9px;margin-top:4px">${W?W.name:'EMPTY'}</div>`;
+     s.onclick=()=>{renderLoadoutPicker(key, idx, sCls);};
+     slotsEl.appendChild(s);
+  });
+  renderLoadoutPicker(key, 0, T.slots[0]);
+}
+window.renderLoadoutPicker=function(key, slotIdx, slotCls){
+  const grid=document.getElementById('lpick-grid');grid.innerHTML='';
+  for(const[wk,W] of Object.entries(WD)){
+    if(!ownedWeapons.has(wk))continue;
+    if(slotCls!=='ANY' && W.cls!==slotCls)continue;
+    const c=document.createElement('div');c.className='card owned';
+    c.innerHTML=`<div class="cbadge cl-${W.cls[0]}">${W.cls}</div><div class="cname">${W.name}</div>`;
+    c.onclick=()=>{robotLoadout[key][slotIdx]=wk;renderLoadout(key);updateHangarPreview(key);};
+    grid.appendChild(c);
+  }
+}
+window.closeLoadout=function(){
+  document.getElementById('loadout-picker').style.display='none';
+  document.getElementById('deploy-row').style.display='flex';
+}
+
+function openSpawnMenu(){
+  const curF=formation.filter(Boolean);
+  const grid=document.getElementById('spawn-grid');grid.innerHTML='';
+  let hasLiving=false;
+  for(let i=0;i<curF.length;i++){
+    const key=curF[i];const T=RD[key];
+    const ex=robots.find(r=>r.isP&&r.type===key);
+    const alive=!ex||(ex&&!ex.destroyed);
+    if(alive)hasLiving=true;
+    const s=document.createElement('div');
+    s.className=`card${alive?'':' locked'}`;
+    s.innerHTML=`<div style="font-size:24px">${T.icon}</div><div class="cname">${T.name}</div><div style="font-size:9px;margin-top:4px">${alive? (ex?Math.floor(ex.hp/ex.maxHp*100)+'% HP':'READY') : 'DESTROYED'}</div>`;
+    if(alive) s.onclick=()=>{spawnSelected(i);};
+    grid.appendChild(s);
+  }
+  document.getElementById('spawn-title').textContent=hasLiving?'DEPLOY ROBOT':'ALL ROBOTS DESTROYED';
+  showOnly('sc-spawn');
+  document.getElementById('hud').classList.remove('off');
+}
+
+function spawnSelected(idx){
+  const curF=formation.filter(Boolean);
+  const key=curF[idx];
+  let ex=robots.find(r=>r.isP&&r.type===key&&!r.destroyed);
+  if(!ex){
+    const p=bPos(idx);
+    ex=makeRobot(key,'blue',p.x,p.y,true);
+    robots.push(ex);
+  }
+  playerBot=ex;hangarIdx=idx;
+  document.getElementById('sc-spawn').classList.add('off');
+  updHUD();updHRow();
+}
+
 function renderRobotGrid(){const grid=document.getElementById('robot-grid');grid.innerHTML='';for(const[key,T] of Object.entries(RD)){if(key.includes('_ai'))continue;const owned=ownedRobots.has(key),inH=formation.includes(key);const c=document.createElement('div');c.className=`card${owned?' owned':''}${inH?' in-h':!owned?' locked':''}`;const hb=Math.round(T.hp/384000*100),sb=Math.round(T.spd/4.1*100);const pStr=T.priceAu>0?`◉ ${T.priceAu} Au`:T.priceAg===0?'FREE':fmtAg(T.priceAg)+' Ag';let btn=!owned?`<div class="cbtn" onclick="buyRobot('${key}')">${pStr}</div>`:inH?`<div class="cbtn in-h-tag">IN FORMATION ✓</div>`:`<div class="cbtn owned-tag" onclick="addToFormation('${key}')">+ ADD</div>`;c.innerHTML=`<div class="cbadge cl-${T.cls[0]}">${T.cls}</div><div style="font-size:28px;margin:3px 0">${T.icon}</div><div class="cname">${T.name}</div><div class="cdesc">${T.desc}</div><div style="display:flex;justify-content:space-between;width:100%;font-size:9px;margin-top:3px"><span style="color:rgba(255,255,255,.35);font-family:'Orbitron',sans-serif">HULL</span><span style="font-family:'Orbitron',sans-serif">${(T.hp/1000).toFixed(0)}k</span></div><div class="sbar"><div class="sbar-f" style="width:${hb}%;background:${T.cls==='LIGHT'?'#39ff14':T.cls==='MEDIUM'?'#ffcc00':'#ff6600'}"></div></div><div style="margin-top:4px;font-size:7px;color:rgba(255,100,0,.55);font-family:'Orbitron',sans-serif">⚡ ${T.ab.n}</div>${btn}`; c.onmouseenter=()=>updateHangarPreview(key); grid.appendChild(c);}}
 window.buyRobot=function(key){const T=RD[key];if(T.priceAu>0){if(goldAu<T.priceAu){showToast('Not enough Au!','#ff2200');return;}goldAu-=T.priceAu;}else{if(silverAg<T.priceAg){showToast('Not enough Ag!','#ff2200');return;}silverAg-=T.priceAg;}ownedRobots.add(key);snd('buy');showToast(`✓ ${T.name} unlocked!`,'#39ff14');renderCurrency();renderRobotGrid();renderFormation();}
 window.addToFormation=function(key){const slot=formation.findIndex(f=>!f);if(slot>=0){formation[slot]=key;renderFormation();renderRobotGrid();}else showToast('Formation full!','#ffcc00');}
@@ -1127,8 +1237,9 @@ function startBattle(){
   
   genMap();initAudio();buildScene3();
   
-  // Spawn player
-  const p0=bPos(0);playerBot=makeRobot(curF[0],'blue',p0.x,p0.y,true);hangarIdx=0;robots.push(playerBot);
+  // Open spawn menu
+  playerBot=null;
+  openSpawnMenu();
   
   if(MP.on&&MP.host){
     const gTeam=MP.mode==='PVP'?'red':'blue';
@@ -1173,6 +1284,7 @@ function activateDev(){
   WD['__vrw__']={key:'__vrw__',name:'VOID LANCE',cls:'HEAVY',dmg:1800000,rof:3,range:1600,bSpd:30,bSz:18,col:'#9900ff',snd:'cannon',ammo:999,rl:.2,sprd:0,aoe:300,plasma:true,priceAg:0,priceAu:0,desc:'Dev'};
   RD['__wrth__']={key:'__wrth__',name:'WRAITH',cls:'HEAVY',hp:15000000,spd:5.2,tSpd:.09,turSpd:.22,bW:52,bH:66,tW:28,tH:36,bCol:'#660099',tCol:'#cc44ff',ws:['__vrw__','__vrw__'],ab:{n:'OBLIVION',i:'☠',cd:5,d:9,e:'fortress'},shape:'heavy',slots:['HEAVY','HEAVY'],priceAg:0,priceAu:0,icon:'🔮',desc:'Dev prototype'};
   ownedRobots.add('__wrth__');ownedWeapons.add('__vrw__');
+  robotLoadout['__wrth__']=['__vrw__','__vrw__'];
   if(gs==='battle'){const p=playerBot?{x:playerBot.x,y:playerBot.y}:bPos(0);const dev=makeRobot('__wrth__','blue',p.x,p.y,true);if(playerBot)playerBot.isP=false;playerBot=dev;robots.push(dev);hangarIdx=0;updHUD();updHRow();}
   else{if(!formation.includes('__wrth__')){const sl=formation.findIndex(f=>!f);if(sl>=0)formation[sl]='__wrth__';else formation[4]='__wrth__';}if(gs==='hangar'){renderFormation();renderRobotGrid();}}
   showToast('☠ WRAITH PROTOCOL ACTIVE','#9900ff');
