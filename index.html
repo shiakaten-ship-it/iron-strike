@@ -7,6 +7,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+<script>
+window.onerror = function(msg, url, line, col, error) {
+   alert("JS Error: " + msg + " at line " + line);
+};
+</script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{width:100%;height:100%;overflow:hidden;background:#060a0f;font-family:'Rajdhani',sans-serif;color:#e0e0e0;user-select:none;}
@@ -571,6 +576,12 @@ function makeRobotMesh3(r){
   
   // Custom geometry based on shape class
   let hGeo = new THREE.BoxGeometry(W*0.9,H*0.45,W*0.65);
+  let tGeo = new THREE.CylinderGeometry(W*0.28,W*0.33,H*0.24,10);
+  if(r.shape === 'light'){
+    tGeo = new THREE.CylinderGeometry(W*0.25,W*0.3,H*0.2,8);
+  } else if(r.shape === 'heavy'){
+    tGeo = new THREE.BoxGeometry(W*0.6,H*0.3,W*0.5);
+  }
   
   // Hull
   const hull=new THREE.Mesh(hGeo,hMat);
