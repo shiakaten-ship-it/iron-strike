@@ -335,7 +335,7 @@ const _RR=[
 ['fury','FURY','HEAVY',384000,1.5,.035,.09,50,64,25,32,'#880000','#ff2200',['trident','zeus'],{n:'OVERLOAD',i:'💥',cd:22,d:5,e:'overload'},'heavy',['HEAVY','HEAVY'],500000,0,'❤️','+75% damage'],
 ['golem','GOLEM','HEAVY',312000,1.7,.04,.09,46,60,22,28,'#554422','#885533',['glory','thunder'],{n:'STOMP',i:'👊',cd:16,d:2,e:'stomp'},'heavy',['HEAVY','HEAVY'],450000,0,'🟤','Stomp AoE'],
 ['spectre','SPECTRE','HEAVY',268000,1.9,.042,.10,44,58,21,27,'#110022','#440055',['scourge','nashorn'],{n:'STEALTH',i:'👁',cd:20,d:5,e:'stealth'},'heavy',['HEAVY','HEAVY'],0,175,'🟣','Heavy invisible'],
-['hawk','HAWK','HEAVY',295000,2.0,.045,.10,44,56,22,28,'#222244','#334466',['scourge','ember'],{n:'FLY MODE',i:'🦅',cd:22,d:3.5,e:'fly'},'heavy',['HEAVY','HEAVY'],0,200,'🔷','Fly+invincible'],
+['hawk','HAWK','HEAVY',295000,2.0,.045,.10,44,56,22,28,'#222244','#334466',['scourge','ember'],{n:'FLY MODE',i:'🚀',cd:5,d:10,e:'fly'},'heavy',['HEAVY','HEAVY'],0,200,'🦅','Fly+invincible'],
 ['ares','ARES','HEAVY',330000,1.7,.04,.095,46,60,22,28,'#771100','#cc2200',['trident','scourge'],{n:'REGEN',i:'💉',cd:20,d:7,e:'regen'},'heavy',['HEAVY','HEAVY'],480000,0,'❤️','HP regen 7s'],
 ['leech','LEECH','HEAVY',280000,1.8,.042,.10,44,58,21,27,'#002200','#003300',['nashorn','glory'],{n:'DRAIN',i:'🩸',cd:18,d:5,e:'drain'},'heavy',['HEAVY','HEAVY'],460000,0,'💚','HP drain'],
 ['wraith_ai','WRAITH_AI','HEAVY',400000,2.0,.046,.11,48,62,23,29,'#220033','#660088',['trident','zeus'],{n:'VOID',i:'🌀',cd:14,d:5,e:'phase'},'heavy',['HEAVY','HEAVY'],0,0,'🔮','AI Elite'],
@@ -1074,7 +1074,7 @@ function update(dt){
     if(r.inv>0)r.inv-=dt;
     for(const w of r.ws){if(w.fT>0)w.fT-=dt;}
     // Jump physics
-    if(r.isJumping||r.jumpH>0){r.jumpVY-=750*dt;r.jumpH+=r.jumpVY*dt;if(r.jumpH<=0){const wj=r.isJumping;r.jumpH=0;r.jumpVY=0;r.isJumping=false;r.jumpCount=0;if(wj){snd('land');triggerShake(4);}if(r.stomping){r.stomping=false;spawnExpl3D(r.x,r.y,150,'#ff8800');for(const rb of robots){if(rb.team===r.team||rb.destroyed)continue;const d=dist(r,rb);if(d<160)dmgBot(rb,r.maxHp*.25,r.id);}triggerShake(20);snd('land');}}}
+    if(!r.flying && (r.isJumping||r.jumpH>0)){r.jumpVY-=750*dt;r.jumpH+=r.jumpVY*dt;if(r.jumpH<=0){const wj=r.isJumping;r.jumpH=0;r.jumpVY=0;r.isJumping=false;r.jumpCount=0;if(wj){snd('land');triggerShake(4);}if(r.stomping){r.stomping=false;spawnExpl3D(r.x,r.y,150,'#ff8800');for(const rb of robots){if(rb.team===r.team||rb.destroyed)continue;const d=dist(r,rb);if(d<160)dmgBot(rb,r.maxHp*.25,r.id);}triggerShake(20);snd('land');}}}
     if(r.flying)r.jumpH=lerp(r.jumpH,250,dt*3);else if(!r.isJumping)r.jumpH=lerp(r.jumpH,0,dt*8);
     if(r.healing&&r.healTimer>0){r.healTimer-=dt;r.hp=Math.min(r.maxHp,r.hp+r.maxHp*.008);if(r.isP)updHPBar();if(r.healTimer<=0)r.healing=false;}
     if(r.ab.active&&r.ab.e==='heal')for(const rb of robots){if(rb.team!==r.team||rb.destroyed)continue;if(dist(r,rb)<220)rb.hp=Math.min(rb.maxHp,rb.hp+rb.maxHp*.005);}
