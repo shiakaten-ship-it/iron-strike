@@ -1,0 +1,20 @@
+{
+  "name": "iron-strike",
+  "version": "1.0.0",
+  "description": "Iron Strike Desktop",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:electron": "electron-builder --win"
+  },
+  "build": {
+    "appId": "com.ironstrike.app",
+    "productName": "Iron Strike",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  }
+}
