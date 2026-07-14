@@ -583,7 +583,6 @@ function makeRobotMesh3(r){
          if(c.isMesh) { c.material = hMat; c.castShadow=true; c.receiveShadow=true; }
       });
       g.add(clone);
-      g.userData.legs=[clone];
   } else {
       const box = new THREE.Mesh(new THREE.BoxGeometry(BW,BH,BW), hMat);
       g.add(box);
@@ -1045,15 +1044,15 @@ function updateP(dt){
   if(!playerBot||playerBot.destroyed)return;const r=playerBot;
   // Slower turning for host/player
   const speedMult = r.flying ? 2.5 : 1;
-  if(r.flying) {
-    if(keys['KeyA']||keys['ArrowLeft']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.bAng-Math.PI/2)*s,Math.sin(r.bAng-Math.PI/2)*s);}
-    if(keys['KeyD']||keys['ArrowRight']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.bAng+Math.PI/2)*s,Math.sin(r.bAng+Math.PI/2)*s);}
-  } else {
-    if(keys['KeyA']||keys['ArrowLeft'])r.bAng-=r.tSpd*0.5;
-    if(keys['KeyD']||keys['ArrowRight'])r.bAng+=r.tSpd*0.5;
-  }
-  if(keys['KeyW']||keys['ArrowUp']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.bAng)*s,Math.sin(r.bAng)*s);}
-  if(keys['KeyS']||keys['ArrowDown']){const s=(r.spd+r.spdB)*speedMult*dt*.65;moveBot(r,-Math.cos(r.bAng)*s,-Math.sin(r.bAng)*s);}
+  // FPS-style movement relative to turret angle (camera aim)
+  if(keys['KeyW']||keys['ArrowUp']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.tAng)*s,Math.sin(r.tAng)*s);}
+  if(keys['KeyS']||keys['ArrowDown']){const s=(r.spd+r.spdB)*speedMult*dt*.65;moveBot(r,-Math.cos(r.tAng)*s,-Math.sin(r.tAng)*s);}
+  if(keys['KeyA']||keys['ArrowLeft']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.tAng-Math.PI/2)*s,Math.sin(r.tAng-Math.PI/2)*s);}
+  if(keys['KeyD']||keys['ArrowRight']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.tAng+Math.PI/2)*s,Math.sin(r.tAng+Math.PI/2)*s);}
+  
+  // Body faces camera smoothly
+  const angDiff = ((r.tAng - r.bAng + Math.PI*3) % (Math.PI*2)) - Math.PI;
+  r.bAng += angDiff * 0.1;
   if(r.charging)moveBot(r,r.cvx*dt,r.cvy*dt);
   if(r.dashCount>0){r.dashTimer-=dt;if(keys['KeyW']&&r.dashTimer<=0&&r.dashCount>0){r.dashTimer=.5;r.dashCount--;const dx=Math.cos(r.bAng)*250,dy=Math.sin(r.bAng)*250;if(!hitBldg(r.x+dx,r.y+dy,28)){spawnExpl3D(r.x,r.y,40,r.bCol);r.x+=dx;r.y+=dy;}}}
   // 3D mouse aiming via raycast
