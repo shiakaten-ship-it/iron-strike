@@ -574,8 +574,9 @@ function makeRobotMesh3(r){
   const hMat=new THREE.MeshStandardMaterial({color:bc,metalness:0.7,roughness:0.3,emissive:bc.clone().multiplyScalar(0.25)});
   const aMat=new THREE.MeshStandardMaterial({color:tc,metalness:0.8,roughness:0.2,emissive:tc.clone().multiplyScalar(0.3)});
   
-  if(baseModels.mech) {
-      const clone = THREE.SkeletonUtils.clone(baseModels.mech);
+  if(baseModels[r.type] || baseModels.mech) {
+      const sourceModel = baseModels[r.type] || baseModels.mech;
+      const clone = THREE.SkeletonUtils.clone(sourceModel);
       const s = BW * 1.5;
       clone.scale.set(s,s,s);
       clone.position.y = -10;
@@ -1289,14 +1290,7 @@ function startBattle(){
     MP.gRobotId=gRob.id;robots.push(gRob);startHostSync();
   }
   
-  // AI fill
-  const bAI=['griffin','natasha','gareth','leo','stalker','lancelot','haechi','fujin'];
-  const rAI=['destrier','griffin','natasha','rhino','fury','carnage','golem','spectre','hawk','ares'];
-  const blueSlots=MP.on&&MP.mode==='COOP'?4:5;
-  const redSlots=6;
-  for(let i=0;i<blueSlots;i++){const p=bPos(i+(MP.on&&MP.mode==='COOP'?2:1));const t=bAI[i%bAI.length];if(t!==curF[0])robots.push(makeRobot(t,'blue',p.x,p.y,false));}
-  for(let i=0;i<redSlots;i++){const p=rPos(i+(MP.on&&MP.mode==='PVP'?1:0));robots.push(makeRobot(rAI[i%rAI.length],'red',p.x,p.y,false));}
-  
+  // AI fill removed by user request (only real players allowed)
   updHUD();updScores();updHRow();updTimer();
   // Ensure loop is only requested once during transition
   if(!MP.host) lastT=performance.now(); 
@@ -1349,14 +1343,22 @@ function gameLoop(ts){
 initThree();
 function loadModels(cb){
   const loader=new THREE.GLTFLoader();
-  loader.load('models/robot.glb',gltf=>{
-    const m=gltf.scene;
-    m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
-    baseModels.mech=m;
-    cb();
-  },undefined,err=>{
-    console.error('Model load error:',err);
-    cb();
+  const types = ['destrier','griffin','natasha','rhino','fury','carnage','golem','spectre','hawk','ares','gareth','leo','stalker','lancelot','haechi','fujin'];
+  let loaded = 0;
+  baseModels = {};
+  
+  types.forEach(t => {
+    loader.load(`models/${t}.glb`, gltf => {
+      const m = gltf.scene;
+      m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
+      baseModels[t] = m;
+      loaded++;
+      if(loaded === types.length) { baseModels.mech = baseModels['destrier']; cb(); }
+    }, undefined, err => {
+      console.warn('Missing model:', t);
+      loaded++;
+      if(loaded === types.length) { baseModels.mech = baseModels['destrier']; cb(); }
+    });
   });
 }
 loadModels(()=>{
