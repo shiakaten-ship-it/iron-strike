@@ -673,11 +673,11 @@ function updateRobotMeshes3(){
       else r.walkP=lerp(r.walkP||0,0,0.15);
       
       if(r.flying){
-          m.userData.legs[0].rotation.z = lerp(m.userData.legs[0].rotation.z, -Math.PI/2.5, 0.1);
-          m.userData.legs[1].rotation.z = lerp(m.userData.legs[1].rotation.z, -Math.PI/2.5, 0.1);
+          if(m.userData.legs[0]) m.userData.legs[0].rotation.z = lerp(m.userData.legs[0].rotation.z, -Math.PI/2.5, 0.1);
+          if(m.userData.legs[1]) m.userData.legs[1].rotation.z = lerp(m.userData.legs[1].rotation.z, -Math.PI/2.5, 0.1);
       } else {
-          m.userData.legs[0].rotation.z=Math.sin(r.walkP||0)*0.75;
-          m.userData.legs[1].rotation.z=Math.sin((r.walkP||0)+Math.PI)*0.75;
+          if(m.userData.legs[0]) m.userData.legs[0].rotation.z=Math.sin(r.walkP||0)*0.75;
+          if(m.userData.legs[1]) m.userData.legs[1].rotation.z=Math.sin((r.walkP||0)+Math.PI)*0.75;
       }
     }
   }
