@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@400;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.134.0/examples/js/utils/SkeletonUtils.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <script>
 window.onerror = function(msg, url, line, col, error) {
@@ -574,7 +575,7 @@ function makeRobotMesh3(r){
   const aMat=new THREE.MeshStandardMaterial({color:tc,metalness:0.8,roughness:0.2,emissive:tc.clone().multiplyScalar(0.3)});
   
   if(baseModels.mech) {
-      const clone = baseModels.mech.clone();
+      const clone = THREE.SkeletonUtils.clone(baseModels.mech);
       const s = BW * 1.5;
       clone.scale.set(s,s,s);
       clone.position.y = -10;
@@ -1351,18 +1352,7 @@ function loadModels(cb){
   const loader=new THREE.GLTFLoader();
   loader.load('models/robot.glb',gltf=>{
     const m=gltf.scene;
-    const swaps = [];
-    m.traverse(c=>{
-      if(c.isSkinnedMesh){
-         const msh = new THREE.Mesh(c.geometry, c.material);
-         msh.position.copy(c.position); msh.rotation.copy(c.rotation); msh.scale.copy(c.scale);
-         msh.castShadow=true; msh.receiveShadow=true;
-         swaps.push({p:c.parent, o:c, n:msh});
-      } else if(c.isMesh){
-         c.castShadow=true;c.receiveShadow=true;
-      }
-    });
-    swaps.forEach(s => { s.p.add(s.n); s.p.remove(s.o); });
+    m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
     baseModels.mech=m;
     cb();
   },undefined,err=>{
