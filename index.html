@@ -1351,7 +1351,6 @@ function loadModels(cb){
   const loader=new THREE.GLTFLoader();
   const types = ['destrier','griffin','natasha','rhino','fury','carnage','golem','spectre','hawk','ares','gareth','leo','stalker','lancelot','haechi','fujin'];
   let loaded = 0;
-  baseModels = {};
   
   types.forEach(t => {
     loader.load(`models/${t}.glb`, gltf => {
