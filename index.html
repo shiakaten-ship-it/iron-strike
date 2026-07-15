@@ -352,7 +352,7 @@ const _RR=[
 ['leech','LEECH','HEAVY',280000,3.6,.042,.10,44,58,21,27,'#002200','#003300',['nashorn','glory'],{n:'DRAIN',i:'🩸',cd:18,d:5,e:'drain'},'heavy',['HEAVY','HEAVY'],460000,0,'💚','HP drain'],
 ['wraith_ai','WRAITH_AI','HEAVY',400000,4.0,.046,.11,48,62,23,29,'#220033','#660088',['trident','zeus'],{n:'VOID',i:'🌀',cd:14,d:5,e:'phase'},'heavy',['HEAVY','HEAVY'],0,0,'🔮','AI Elite'],
 ];
-const RD={};for(const r of _RR)RD[r[0]]={key:r[0],name:r[1],cls:r[2],hp:r[3],spd:r[4],tSpd:r[5],turSpd:r[6],bW:r[7],bH:r[8],tW:r[9],tH:r[10],bCol:r[11],tCol:r[12],ws:r[13],ab:{n:r[14].n,i:r[14].i,cd:r[14].cd,d:r[14].d,e:r[14].e},shape:r[15],slots:r[16],priceAg:r[17],priceAu:r[18],icon:r[19],desc:r[20]};
+const RD={};for(const r of _RR)RD[r[0]]={key:r[0],name:r[1],cls:r[2],hp:r[3],spd:r[4],tSpd:r[5]*0.5,turSpd:r[6]*0.5,bW:r[7]*1.5,bH:r[8]*1.5,tW:r[9]*1.5,tH:r[10]*1.5,bCol:r[11],tCol:r[12],ws:r[13],ab:{n:r[14].n,i:r[14].i,cd:r[14].cd,d:r[14].d,e:r[14].e},shape:r[15],slots:r[16],priceAg:r[17],priceAu:r[18],icon:r[19],desc:r[20]};
 
 const _WW=[
 ['molot','MOLOT','LIGHT',1400,8,450,14,4,'#ffcc44','mg',30,3.5,.04,0,{},0,0,'Machine gun'],
@@ -393,34 +393,35 @@ function getLoadout(rKey){const T=RD[rKey];const lo=robotLoadout[rKey];if(!lo)re
 
 // ── Map Generator ──────────────────────────────────────────
 const MAP_W=6000,MAP_H=5000;
-let buildings=[],beacons=[];
+let buildings=[],beacons=[],trees=[],cars=[],biome='City',treeMat=null;
 function genMap(){
-  buildings=[];
-  // Outer walls
+  buildings=[]; beacons=[]; trees=[]; cars=[];
+  const biomes = ['City', 'Forest', 'Desert'];
+  biome = biomes[Math.floor(Math.random() * biomes.length)];
+  
   for(const[x,y,w,h] of [[0,0,MAP_W,80],[0,MAP_H-80,MAP_W,80],[0,0,80,MAP_H],[MAP_W-80,0,80,MAP_H]])buildings.push({x,y,w,h,type:'wall'});
   
-  // Random city blocks
   const bSize = 350;
   for(let x=250; x<MAP_W-250; x+=bSize){
     for(let y=250; y<MAP_H-250; y+=bSize){
-      if(Math.random() > 0.35){
-        const w = rnd(120, bSize-40);
-        const h = rnd(120, bSize-40);
-        const bx = x + (bSize - w)/2;
-        const by = y + (bSize - h)/2;
-        // Keep center open for B beacon
-        const cx = Math.abs(bx+w/2 - MAP_W/2), cy = Math.abs(by+h/2 - MAP_H/2);
-        if(cx < 350 && cy < 350) continue; 
-        
-        // Keep spawn areas clear
-        if(bx < 900 && by < 900) continue; 
-        if(bx > MAP_W-900 && by > MAP_H-900) continue;
+      const cx = Math.abs((x+bSize/2) - MAP_W/2), cy = Math.abs((y+bSize/2) - MAP_H/2);
+      if(cx < 350 && cy < 350) continue; 
+      if(x < 900 && y < 900) continue; 
+      if(x > MAP_W-900 && y > MAP_H-900) continue;
 
-        buildings.push({x:bx, y:by, w, h, type:'building'});
+      if(biome === 'City' && Math.random() > 0.4){
+        const w = rnd(120, bSize-40), h = rnd(120, bSize-40);
+        buildings.push({x:x+(bSize-w)/2, y:y+(bSize-h)/2, w, h, type:'building'});
+        if(Math.random()>0.3) cars.push({x:x+bSize/2+rnd(-40,40), y:y+bSize/2+rnd(-40,40), r:rnd(0,Math.PI*2), active:true});
+      } else if(biome === 'Forest' && Math.random() > 0.2){
+        for(let i=0;i<rndI(1,3);i++) trees.push({x:x+rnd(40,bSize-40), y:y+rnd(40,bSize-40), type:Math.random()>0.6?'pine':'oak', s:rnd(0.7, 1.4)});
+      } else if(biome === 'Desert' && Math.random() > 0.6){
+        const w = rnd(80, bSize-80), h = rnd(80, bSize-80);
+        buildings.push({x:x+(bSize-w)/2, y:y+(bSize-h)/2, w, h, type:'rock'});
+        if(Math.random()>0.7) trees.push({x:x+bSize/2, y:y+bSize/2, type:'dead', s:rnd(0.8, 1.2)});
       }
     }
   }
-  
   beacons=[{x:900,y:2500,r:65,team:-1,prog:0,id:'A'},{x:MAP_W/2,y:MAP_H/2,r:75,team:-1,prog:0,id:'B'},{x:5100,y:2500,r:65,team:-1,prog:0,id:'C'}];
 }
 
@@ -505,6 +506,9 @@ function buildScene3(){
   explFlashes.length=0;
   
   // Lighting for realism
+  const bg = biome==='Desert'?0x2a1a12:biome==='Forest'?0x0a1e12:0x0a121e;
+  scene3.background.set(bg); scene3.fog.color.set(bg);
+
   scene3.add(new THREE.AmbientLight(0x2a3545, 1.2));
   const sun=new THREE.DirectionalLight(0xffeedd, 3.5);
   sun.position.set(1200, 2000, 1000);
@@ -520,7 +524,8 @@ function buildScene3(){
   scene3.add(fillLight);
 
   // Ground
-  const gnd=new THREE.Mesh(new THREE.PlaneGeometry(MAP_W+400,MAP_H+400),new THREE.MeshStandardMaterial({color:0x121720,roughness:0.85,metalness:0.15}));
+  const gndCol = biome==='Desert'?0x4a3219:biome==='Forest'?0x122a18:0x121720;
+  const gnd=new THREE.Mesh(new THREE.PlaneGeometry(MAP_W+400,MAP_H+400),new THREE.MeshStandardMaterial({color:gndCol,roughness:0.95,metalness:0.05}));
   gnd.rotation.x=-Math.PI/2;gnd.position.set(MAP_W/2,0,MAP_H/2);gnd.receiveShadow=true;scene3.add(gnd);
   const grid=new THREE.GridHelper(Math.max(MAP_W,MAP_H)*1.2,100,0x222a35,0x1a202a);
   grid.position.set(MAP_W/2,0.8,MAP_H/2);scene3.add(grid);
@@ -563,6 +568,58 @@ function buildScene3(){
     const lt=new THREE.PointLight(0x555577,4,400);lt.position.set(b.x,125,b.y);scene3.add(lt);
     beaconMeshes3[b.id]={base,flag,flagMat,lt};
   }
+
+  // Cars
+  if(baseModels['car']){
+    for(const c of cars){
+      const m=THREE.SkeletonUtils.clone(baseModels['car']);
+      m.position.set(c.x,0,c.y);
+      m.rotation.y=c.r;
+      m.scale.set(6,6,6);
+      scene3.add(m);
+      c.mesh=m;
+    }
+  }
+
+  // Procedural Trees
+  if(!treeMat) treeMat = {
+    'pine': new THREE.MeshStandardMaterial({color:0x1a4411,roughness:0.9}),
+    'oak': new THREE.MeshStandardMaterial({color:0x2c5019,roughness:0.9}),
+    'dead': new THREE.MeshStandardMaterial({color:0x4a4a4a,roughness:0.9}),
+    'wood': new THREE.MeshStandardMaterial({color:0x3a2210,roughness:0.95})
+  };
+  
+  for(const t of trees){
+    const tg=new THREE.Group();
+    tg.position.set(t.x,0,t.y);
+    const th = rnd(50,80)*t.s;
+    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(rnd(4,7)*t.s,rnd(6,10)*t.s,th,6),treeMat.wood);
+    trunk.position.y=th/2; trunk.castShadow=true; trunk.receiveShadow=true; tg.add(trunk);
+    
+    if(t.type==='pine'){
+      for(let i=0;i<3;i++){
+        const l=new THREE.Mesh(new THREE.ConeGeometry(rnd(25,35)*t.s-i*5,rnd(40,60)*t.s,5),treeMat.pine);
+        l.position.y=th*0.4 + i*th*0.25; l.castShadow=true; tg.add(l);
+      }
+    } else if(t.type==='oak'){
+      for(let i=0;i<6;i++){
+        const l=new THREE.Mesh(new THREE.DodecahedronGeometry(rnd(15,28)*t.s,1),treeMat.oak);
+        l.position.set(rnd(-15,15), th*0.7+rnd(-15,25), rnd(-15,15)); l.castShadow=true; tg.add(l);
+      }
+    } else if(t.type==='dead'){
+      for(let i=0;i<4;i++){
+        const l=new THREE.Mesh(new THREE.CylinderGeometry(1,3,rnd(20,40),4),treeMat.wood);
+        l.rotation.set(rnd(-1,1),rnd(0,Math.PI),rnd(-1,1));
+        l.position.set(rnd(-5,5), th*rnd(0.6,0.9), rnd(-5,5)); tg.add(l);
+      }
+    }
+    
+    if(t.type!=='dead'){
+      t.swayBase = rnd(0,Math.PI*2);
+      t.leaves = tg.children.filter(c=>c.geometry.type!=='CylinderGeometry');
+    }
+    scene3.add(tg);
+  }
 }
 
 function makeRobotMesh3(r){
@@ -577,7 +634,7 @@ function makeRobotMesh3(r){
   if(baseModels[r.type] || baseModels.mech) {
       const sourceModel = baseModels[r.type] || baseModels.mech;
       const clone = THREE.SkeletonUtils.clone(sourceModel);
-      const s = 12;
+      const s = 24;
       clone.scale.set(s,s,s);
       clone.position.y = -15;
       const realMat = new THREE.MeshStandardMaterial({color: 0x22252a, metalness: 0.85, roughness: 0.35});
@@ -769,12 +826,64 @@ function calcAimAngle3D(){
   return playerBot.tAng;
 }
 
+const nameTags = document.getElementById('nametags') || (function(){
+  const div = document.createElement('div');
+  div.id = 'nametags';
+  div.style.position = 'absolute';
+  div.style.top = '0';
+  div.style.left = '0';
+  div.style.width = '100%';
+  div.style.height = '100%';
+  div.style.pointerEvents = 'none';
+  div.style.zIndex = '50';
+  document.body.appendChild(div);
+  return div;
+})();
+
+function updateTreesAndNametags(){
+  const t = performance.now()*0.001;
+  // Wind
+  for(const tree of trees){
+    if(tree.leaves){
+      const sway = Math.sin(t*2 + tree.swayBase) * 0.05;
+      for(const l of tree.leaves) l.rotation.z = sway;
+    }
+  }
+  
+  // Nametags
+  let html = '';
+  for(const r of robots){
+    if(r.destroyed || !r.id || !meshes3[r.id] || r.team === 'none') continue;
+    const m = meshes3[r.id];
+    
+    // Check if behind camera
+    const v = new THREE.Vector3().setFromMatrixPosition(m.matrixWorld);
+    v.y += (r.bH*1.5 + 40); // Above head
+    v.project(cam3);
+    
+    if(v.z > 1 || v.z < -1) continue; // Behind camera
+    
+    const x = (v.x * 0.5 + 0.5) * W;
+    const y = (-(v.y * 0.5) + 0.5) * H;
+    
+    const col = r.team==='blue'?'#3366ff':r.team==='red'?'#ff3311':'#ffcc00';
+    const hpPct = Math.max(0, r.hp/r.maxHp*100);
+    
+    html += `<div style="position:absolute;left:${x}px;top:${y}px;transform:translate(-50%,-100%);text-align:center;text-shadow:0 1px 3px #000">
+      <div style="font-family:'Orbitron',sans-serif;font-size:11px;color:${col};font-weight:bold">${r.name}</div>
+      <div style="width:40px;height:4px;background:#222;margin:2px auto 0;border:1px solid #000"><div style="width:${hpPct}%;height:100%;background:${col}"></div></div>
+    </div>`;
+  }
+  nameTags.innerHTML = html;
+}
+
 function render3D(){
   if(gs==='hangar'){
     if(hRobotMesh) {
       hRobotMesh.rotation.y += 0.005; // slow spin
     }
     renderer3.render(hScene3,hCam3);
+    nameTags.innerHTML = '';
     return;
   }
   if(gs!=='battle'||!scene3)return;
@@ -783,6 +892,7 @@ function render3D(){
   updateBeaconMeshes3();
   updateExplFlashes();
   updateCamera3D();
+  updateTreesAndNametags();
   renderer3.render(scene3,cam3);
   drawMM();drawBeaconHUD();
 }
@@ -1090,6 +1200,25 @@ function update(dt){
      }
   }
   updTimer();updateP(dt);
+  
+  // Crush cars
+  for(const r of robots){
+    if(r.destroyed || r.flying) continue;
+    for(const c of cars){
+      if(!c.active) continue;
+      const d = Math.hypot(r.x-c.x, r.y-c.y);
+      if(d < r.bW*1.5 + 40){
+        c.active = false;
+        if(c.mesh) {
+          c.mesh.scale.y = 0.5; // Flatten
+          c.mesh.position.y = -2;
+        }
+        spawnExpl3D(c.x, c.y, 25, '#ff8800');
+        osc(80, 0.2, 'square', 0.1); // Crunch sound
+      }
+    }
+  }
+
   if(MP.on&&MP.host)applyGuestInput();
   for(const r of robots){
     if(r.destroyed)continue;
@@ -1349,7 +1478,7 @@ function gameLoop(ts){
 initThree();
 function loadModels(cb){
   const loader=new THREE.GLTFLoader();
-  const types = ['destrier','griffin','natasha','rhino','fury','carnage','golem','spectre','hawk','ares','gareth','leo','stalker','lancelot','haechi','fujin'];
+  const types = ['destrier','griffin','natasha','rhino','fury','carnage','golem','spectre','hawk','ares','gareth','leo','stalker','lancelot','haechi','fujin','car'];
   let loaded = 0;
   
   types.forEach(t => {
