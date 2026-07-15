@@ -1058,8 +1058,8 @@ function updateP(dt){
   if(keys['KeyD']||keys['ArrowRight']){const s=(r.spd+r.spdB)*speedMult*dt;moveBot(r,Math.cos(r.tAng+Math.PI/2)*s,Math.sin(r.tAng+Math.PI/2)*s);}
   
   // Body faces camera smoothly
-  const angDiff = ((r.tAng - r.bAng + Math.PI*3) % (Math.PI*2)) - Math.PI;
-  r.bAng += angDiff * 0.1;
+  const diff = ((r.tAng - r.bAng + Math.PI*3) % (Math.PI*2)) - Math.PI;
+  r.bAng += diff * 0.1;
   if(r.charging)moveBot(r,r.cvx*dt,r.cvy*dt);
   if(r.dashCount>0){r.dashTimer-=dt;if(keys['KeyW']&&r.dashTimer<=0&&r.dashCount>0){r.dashTimer=.5;r.dashCount--;const dx=Math.cos(r.bAng)*250,dy=Math.sin(r.bAng)*250;if(!hitBldg(r.x+dx,r.y+dy,28)){spawnExpl3D(r.x,r.y,40,r.bCol);r.x+=dx;r.y+=dy;}}}
   // 3D mouse aiming via raycast
