@@ -577,9 +577,9 @@ function makeRobotMesh3(r){
   if(baseModels[r.type] || baseModels.mech) {
       const sourceModel = baseModels[r.type] || baseModels.mech;
       const clone = THREE.SkeletonUtils.clone(sourceModel);
-      const s = BW * 1.5;
+      const s = 12;
       clone.scale.set(s,s,s);
-      clone.position.y = -10;
+      clone.position.y = -15;
       const realMat = new THREE.MeshStandardMaterial({color: 0x22252a, metalness: 0.85, roughness: 0.35});
       const glowMat = new THREE.MeshStandardMaterial({color: 0xff0000, emissive: 0xff0000, emissiveIntensity: 3, toneMapped: false});
       
