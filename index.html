@@ -1498,11 +1498,19 @@ function gameLoop(ts){
 initThree();
 function loadModels(cb){
   const loader=new THREE.GLTFLoader();
-  const types = ['robot_expressive', 'soldier', 'xbot', 'car', 'building', 'house'];
+  const modelURLs = {
+    'robot_expressive': 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
+    'soldier': 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Soldier.glb',
+    'xbot': 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb',
+    'car': 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Buggy/glTF-Binary/Buggy.glb',
+    'building': 'https://raw.githubusercontent.com/bertt/googlemaps3d/main/3dtiles/building.glb',
+    'house': 'https://raw.githubusercontent.com/NV7150/webmr-handson/main/assets/House.glb'
+  };
+  const types = Object.keys(modelURLs);
   let loaded = 0;
   
   types.forEach(t => {
-    loader.load(`models/${t}.glb`, gltf => {
+    loader.load(modelURLs[t], gltf => {
       const m = gltf.scene;
       m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
       baseModels[t] = m;
