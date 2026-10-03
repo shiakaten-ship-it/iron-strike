@@ -267,7 +267,7 @@ html,body{width:100%;height:100%;overflow:hidden;background:#060a0f;font-family:
   <div id="rtitle" class="rtitle"></div>
   <div class="rstats" id="rstats"></div>
   <div style="font-family:'Orbitron',sans-serif;font-size:10px;color:rgba(255,255,255,.4);margin-bottom:20px" id="r-reward"></div>
-  <button class="btn" onclick="showMpMenu()">RETURN TO BASE</button>
+  <button class="btn" onclick="showHangar()">RETURN TO BASE</button>
 </div>
 
 <!-- SPAWN MENU -->
@@ -631,8 +631,11 @@ function makeRobotMesh3(r){
   const hMat=new THREE.MeshStandardMaterial({color:bc,metalness:0.7,roughness:0.3,emissive:bc.clone().multiplyScalar(0.25)});
   const aMat=new THREE.MeshStandardMaterial({color:tc,metalness:0.8,roughness:0.2,emissive:tc.clone().multiplyScalar(0.3)});
   
-  if(baseModels[r.type] || baseModels.mech) {
-      const sourceModel = baseModels[r.type] || baseModels.mech;
+  let sourceModel = baseModels['robot_expressive'];
+  if(r.cls === 'LIGHT' && baseModels['xbot']) sourceModel = baseModels['xbot'];
+  else if(r.cls === 'HEAVY' && baseModels['soldier']) sourceModel = baseModels['soldier'];
+  
+  if(sourceModel) {
       const clone = THREE.SkeletonUtils.clone(sourceModel);
       const s = 24;
       clone.scale.set(s,s,s);
@@ -1478,7 +1481,7 @@ function gameLoop(ts){
 initThree();
 function loadModels(cb){
   const loader=new THREE.GLTFLoader();
-  const types = ['destrier','griffin','natasha','rhino','fury','carnage','golem','spectre','hawk','ares','gareth','leo','stalker','lancelot','haechi','fujin','car'];
+  const types = ['robot_expressive', 'soldier', 'xbot', 'car'];
   let loaded = 0;
   
   types.forEach(t => {
@@ -1487,11 +1490,11 @@ function loadModels(cb){
       m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
       baseModels[t] = m;
       loaded++;
-      if(loaded === types.length) { baseModels.mech = baseModels['destrier']; cb(); }
+      if(loaded === types.length) { baseModels.mech = baseModels['robot_expressive']; cb(); }
     }, undefined, err => {
       console.warn('Missing model:', t);
       loaded++;
-      if(loaded === types.length) { baseModels.mech = baseModels['destrier']; cb(); }
+      if(loaded === types.length) { baseModels.mech = baseModels['robot_expressive']; cb(); }
     });
   });
 }
