@@ -533,23 +533,40 @@ function buildScene3(){
   // Buildings
   for(const b of buildings){
     const isW=b.type==='wall';
-    const bh=isW?80:clamp((b.w+b.h)*0.8, 200, 750); // Much taller skyscrapers
-    const mat=new THREE.MeshStandardMaterial({
-      color:isW?0x11161d:0x202b38,
-      roughness:0.7,
-      metalness:0.3,
-      emissive:isW?0x000000:0x0a1525,
-      emissiveIntensity:isW?0:0.4
-    });
-    const mesh=new THREE.Mesh(new THREE.BoxGeometry(b.w,bh,b.h),mat);
-    mesh.position.set(b.x+b.w/2,bh/2,b.y+b.h/2);mesh.castShadow=true;mesh.receiveShadow=true;scene3.add(mesh);
-    // Add glowing neon edges
-    if(!isW){
-      const eGeo=new THREE.EdgesGeometry(new THREE.BoxGeometry(b.w,bh,b.h));
-      const col = Math.random() > 0.5 ? 0xff6600 : 0x00ccff;
-      const edges = new THREE.LineSegments(eGeo,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.25}));
-      edges.position.copy(mesh.position);
-      scene3.add(edges);
+    const isRock=b.type==='rock';
+    const bh=isW?80:clamp((b.w+b.h)*0.8, 200, 750); // Taller skyscrapers
+    
+    if(!isW && !isRock && (baseModels['building'] || baseModels['house'])){
+      const modelType = Math.random() > 0.5 && baseModels['house'] ? 'house' : 'building';
+      const source = baseModels[modelType] || baseModels['building'] || baseModels['house'];
+      const m = THREE.SkeletonUtils.clone(source);
+      
+      const box = new THREE.Box3().setFromObject(source);
+      const size = box.getSize(new THREE.Vector3());
+      const sx = size.x > 0.1 ? b.w / size.x : b.w * 0.1;
+      const sy = size.y > 0.1 ? bh / size.y : bh * 0.1;
+      const sz = size.z > 0.1 ? b.h / size.z : b.h * 0.1;
+      
+      m.scale.set(sx, sy, sz);
+      m.position.set(b.x+b.w/2, -box.min.y * sy, b.y+b.h/2);
+      scene3.add(m);
+    } else {
+      const mat=new THREE.MeshStandardMaterial({
+        color:isW?0x11161d:isRock?0x4a3b2c:0x202b38,
+        roughness:0.7,
+        metalness:0.3,
+        emissive:isW||isRock?0x000000:0x0a1525,
+        emissiveIntensity:isW||isRock?0:0.4
+      });
+      const mesh=new THREE.Mesh(new THREE.BoxGeometry(b.w,bh,b.h),mat);
+      mesh.position.set(b.x+b.w/2,bh/2,b.y+b.h/2);mesh.castShadow=true;mesh.receiveShadow=true;scene3.add(mesh);
+      if(!isW && !isRock){
+        const eGeo=new THREE.EdgesGeometry(new THREE.BoxGeometry(b.w,bh,b.h));
+        const col = Math.random() > 0.5 ? 0xff6600 : 0x00ccff;
+        const edges = new THREE.LineSegments(eGeo,new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.25}));
+        edges.position.copy(mesh.position);
+        scene3.add(edges);
+      }
     }
   }
 
@@ -1481,7 +1498,7 @@ function gameLoop(ts){
 initThree();
 function loadModels(cb){
   const loader=new THREE.GLTFLoader();
-  const types = ['robot_expressive', 'soldier', 'xbot', 'car'];
+  const types = ['robot_expressive', 'soldier', 'xbot', 'car', 'building', 'house'];
   let loaded = 0;
   
   types.forEach(t => {
