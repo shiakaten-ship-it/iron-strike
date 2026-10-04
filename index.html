@@ -648,9 +648,9 @@ function makeRobotMesh3(r){
   const hMat=new THREE.MeshStandardMaterial({color:bc,metalness:0.7,roughness:0.3,emissive:bc.clone().multiplyScalar(0.25)});
   const aMat=new THREE.MeshStandardMaterial({color:tc,metalness:0.8,roughness:0.2,emissive:tc.clone().multiplyScalar(0.3)});
   
-  let sourceModel = baseModels['robot_expressive'];
-  if(r.cls === 'LIGHT' && baseModels['xbot']) sourceModel = baseModels['xbot'];
-  else if(r.cls === 'HEAVY' && baseModels['soldier']) sourceModel = baseModels['soldier'];
+  let sourceModel = baseModels['medium_mech'];
+  if(r.cls === 'LIGHT' && baseModels['light_mech']) sourceModel = baseModels['light_mech'];
+  else if(r.cls === 'HEAVY' && baseModels['heavy_mech']) sourceModel = baseModels['heavy_mech'];
   
   if(sourceModel) {
       const clone = THREE.SkeletonUtils.clone(sourceModel);
@@ -1499,9 +1499,9 @@ initThree();
 function loadModels(cb){
   const loader=new THREE.GLTFLoader();
   const modelURLs = {
-    'robot_expressive': 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/RobotExpressive/RobotExpressive.glb',
-    'soldier': 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Soldier.glb',
-    'xbot': 'https://raw.githubusercontent.com/mrdoob/three.js/master/examples/models/gltf/Xbot.glb',
+    'medium_mech': 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/BrainStem/glTF-Binary/BrainStem.glb',
+    'heavy_mech': 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb',
+    'light_mech': 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/CesiumMan/glTF-Binary/CesiumMan.glb',
     'car': 'https://raw.githubusercontent.com/KhronosGroup/glTF-Sample-Models/master/2.0/Buggy/glTF-Binary/Buggy.glb',
     'building': 'https://raw.githubusercontent.com/bertt/googlemaps3d/main/3dtiles/building.glb',
     'house': 'https://raw.githubusercontent.com/NV7150/webmr-handson/main/assets/House.glb'
@@ -1515,11 +1515,11 @@ function loadModels(cb){
       m.traverse(c=>{if(c.isMesh){c.castShadow=true;c.receiveShadow=true;}});
       baseModels[t] = m;
       loaded++;
-      if(loaded === types.length) { baseModels.mech = baseModels['robot_expressive']; cb(); }
+      if(loaded === types.length) { baseModels.mech = baseModels['medium_mech']; cb(); }
     }, undefined, err => {
       console.warn('Missing model:', t);
       loaded++;
-      if(loaded === types.length) { baseModels.mech = baseModels['robot_expressive']; cb(); }
+      if(loaded === types.length) { baseModels.mech = baseModels['medium_mech']; cb(); }
     });
   });
 }
